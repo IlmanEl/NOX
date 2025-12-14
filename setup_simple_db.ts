@@ -1,0 +1,228 @@
+import { createClient } from '@supabase/supabase-js';
+import { config } from 'dotenv';
+import { readFileSync } from 'fs';
+
+// Загружаем переменные окружения
+config();
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('❌ Ошибка: SUPABASE_URL и SUPABASE_ANON_KEY должны быть установлены в .env');
+  process.exit(1);
+}
+
+// Создаем клиент Supabase
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+interface Word {
+  id: string;
+  ce: string;
+  ru: string;
+  class?: string | null;
+  part_of_speech?: string;
+}
+
+interface Verb {
+  id: string;
+  ce_infinitive: string;
+  ru_infinitive: string;
+  present_tense: string;
+}
+
+interface Phrase {
+  id: string;
+  ru: string;
+  ce: string;
+  category: string;
+}
+
+interface MasterSeed {
+  version: string;
+  words: Word[];
+  verbs: Verb[];
+  phrases: Phrase[];
+}
+
+async function setupDatabase() {
+  // Проверяем флаг --clean для полной очистки базы
+  const shouldClean = process.argv.includes('--clean');
+
+  console.log('🚀 Начинаем настройку базы данных...\n');
+  if (shouldClean) {
+    console.log('⚠️  РЕЖИМ ОЧИСТКИ: База будет полностью очищена перед загрузкой!\n');
+  }
+
+  try {
+    // 1. Проверяем подключение
+    console.log('🔌 Проверка подключения к Supabase...');
+    const { data: testData, error: testError } = await supabase
+      .from('dictionary')
+      .select('count', { count: 'exact', head: true });
+
+    if (testError) {
+      if (testError.code === '42P01') {
+        console.log('\n⚠️  ТАБЛИЦА "dictionary" НЕ НАЙДЕНА!\n');
+        console.log('📋 Пожалуйста, создайте таблицу в Supabase Dashboard используя этот SQL:\n');
+        console.log('----------------------------------------');
+        console.log(`
+-- Создаем таблицу dictionary
+CREATE TABLE dictionary (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ce TEXT NOT NULL,
+  ru TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('word', 'phrase')),
+  category TEXT,
+  is_verified BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(ce)
+);
+
+-- Создаем индексы для ускорения поиска
+CREATE INDEX idx_dictionary_type ON dictionary(type);
+CREATE INDEX idx_dictionary_category ON dictionary(category);
+CREATE INDEX idx_dictionary_ce ON dictionary(ce);
+        `);
+        console.log('----------------------------------------\n');
+        console.log('После создания таблицы запустите скрипт снова: npm run setup\n');
+        process.exit(1);
+      } else {
+        throw testError;
+      }
+    }
+
+    console.log('✅ Подключение успешно\n');
+
+    // 2. Опциональная очистка таблицы (только если указан флаг --clean)
+    if (shouldClean) {
+      console.log('🗑️  Очистка таблицы dictionary...');
+      const { error: deleteError } = await supabase
+        .from('dictionary')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (deleteError) {
+        console.log('⚠️  Ошибка при очистке:', deleteError.message);
+      } else {
+        console.log('✅ Таблица очищена\n');
+      }
+    }
+
+    // 3. Загружаем данные из master_seed.json
+    // ВАЖНО: Используем upsert - обновляем существующие записи и добавляем новые
+    console.log('📥 Загрузка данных из master_seed.json...');
+    const masterSeed: MasterSeed = JSON.parse(
+      readFileSync('./master_seed.json', 'utf-8')
+    );
+
+    const dictionaryEntries: Array<{
+      ce: string;
+      ru: string;
+      type: 'word' | 'phrase';
+      category: string;
+      is_verified: boolean;
+    }> = [];
+
+    // Обрабатываем слова
+    for (const word of masterSeed.words) {
+      dictionaryEntries.push({
+        ce: word.ce,
+        ru: word.ru,
+        type: 'word',
+        category: word.part_of_speech || 'unknown',
+        is_verified: true
+      });
+    }
+
+    // Обрабатываем глаголы
+    for (const verb of masterSeed.verbs) {
+      dictionaryEntries.push({
+        ce: verb.ce_infinitive,
+        ru: verb.ru_infinitive,
+        type: 'word',
+        category: 'verb',
+        is_verified: true
+      });
+    }
+
+    // Обрабатываем фразы
+    for (const phrase of masterSeed.phrases) {
+      dictionaryEntries.push({
+        ce: phrase.ce,
+        ru: phrase.ru,
+        type: 'phrase',
+        category: phrase.category || 'general',
+        is_verified: true
+      });
+    }
+
+    console.log(`📊 Всего записей для обработки: ${dictionaryEntries.length}`);
+    console.log(`   - Слов: ${masterSeed.words.length}`);
+    console.log(`   - Глаголов: ${masterSeed.verbs.length}`);
+    console.log(`   - Фраз: ${masterSeed.phrases.length}\n`);
+
+    // 4. Загружаем данные в базу (upsert по полю ce)
+    console.log('⬆️  Синхронизация с Supabase (upsert)...');
+    console.log('   → Существующие записи будут обновлены');
+    console.log('   → Новые записи будут добавлены\n');
+
+    const { data, error: upsertError } = await supabase
+      .from('dictionary')
+      .upsert(dictionaryEntries, {
+        onConflict: 'ce',
+        ignoreDuplicates: false
+      })
+      .select();
+
+    if (upsertError) {
+      console.error('❌ Ошибка при синхронизации данных:', upsertError);
+      throw upsertError;
+    }
+
+    console.log(`✅ Успешно синхронизировано ${dictionaryEntries.length} записей!\n`);
+
+    // 5. Проверяем результат
+    const { count, error: countError } = await supabase
+      .from('dictionary')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) {
+      console.error('⚠️  Не удалось получить количество записей:', countError);
+    } else {
+      console.log(`📈 Всего записей в базе: ${count}`);
+    }
+
+    // Показываем статистику по типам
+    const { data: stats } = await supabase
+      .from('dictionary')
+      .select('type')
+      .then(async (result) => {
+        if (result.data) {
+          const wordCount = result.data.filter(r => r.type === 'word').length;
+          const phraseCount = result.data.filter(r => r.type === 'phrase').length;
+          return {
+            data: {
+              words: wordCount,
+              phrases: phraseCount
+            }
+          };
+        }
+        return { data: null };
+      });
+
+    if (stats) {
+      console.log(`   - Слов и глаголов: ${stats.words}`);
+      console.log(`   - Фраз: ${stats.phrases}`);
+    }
+
+    console.log('\n🎉 База данных успешно настроена и заполнена!');
+
+  } catch (error) {
+    console.error('❌ Критическая ошибка:', error);
+    process.exit(1);
+  }
+}
+
+// Запускаем настройку
+setupDatabase();

@@ -1,26 +1,23 @@
 {
-  "name": "ai-refinery-chechen",
+  "name": "chechen-language-app",
   "version": "1.0.0",
-  "description": "AI-powered data cleaning for Chechen language phrasebook using OpenAI API",
-  "main": "refine_data.ts",
+  "description": "Chechen language learning app - Content preparation",
+  "main": "setup_simple_db.ts",
   "scripts": {
-    "refine": "tsx refine_data.ts",
-    "polish": "tsx polish_data.ts",
-    "deep-polish": "tsx deep_polish.ts",
-    "build": "tsc",
-    "start": "node dist/refine_data.js"
+    "setup": "tsx setup_simple_db.ts",
+    "setup:clean": "tsx setup_simple_db.ts --clean",
+    "build": "tsc"
   },
   "keywords": [
     "chechen",
     "noxchiyn-mott",
-    "ocr",
-    "ai",
-    "openai",
-    "data-cleaning"
+    "language-learning",
+    "supabase"
   ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@supabase/supabase-js": "^2.87.1",
     "cli-progress": "^3.12.0",
     "dotenv": "^16.4.7",
     "openai": "^4.73.0",
