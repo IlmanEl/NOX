@@ -1,0 +1,32 @@
+{
+  "name": "ai-refinery-chechen",
+  "version": "1.0.0",
+  "description": "AI-powered data cleaning for Chechen language phrasebook using OpenAI API",
+  "main": "refine_data.ts",
+  "scripts": {
+    "refine": "tsx refine_data.ts",
+    "build": "tsc",
+    "start": "node dist/refine_data.js"
+  },
+  "keywords": [
+    "chechen",
+    "noxchiyn-mott",
+    "ocr",
+    "ai",
+    "openai",
+    "data-cleaning"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "openai": "^4.73.0",
+    "dotenv": "^16.4.7",
+    "cli-progress": "^3.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/cli-progress": "^3.11.6",
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.2"
+  }
+}
