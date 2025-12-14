@@ -28,7 +28,7 @@ RULES FOR CORRECTION:
 2. Fix pronouns endings: "Са\\"" -> "Сан" (My), "Хьа\\"" -> "Хьан" (Your), "Шу\\"" -> "Шун" (Your pl).
 3. Fix verb endings: "хуй1ла" -> "хуьйла", "вой1а" -> "войла".
 4. Fix common OCR artifacts: remove random colons (:), fix spacing.
-5. Output MUST be a valid JSON array of objects: [{ "ru": "...", "ce": "..." }].
+5. Output MUST be a valid JSON object with a "phrases" array: { "phrases": [{ "ru": "...", "ce": "..." }] }.
 6. Do NOT translate anew if the meaning is correct, just fix the spelling.`;
 
 // Types

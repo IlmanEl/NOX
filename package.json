@@ -5,6 +5,8 @@
   "main": "refine_data.ts",
   "scripts": {
     "refine": "tsx refine_data.ts",
+    "polish": "tsx polish_data.ts",
+    "deep-polish": "tsx deep_polish.ts",
     "build": "tsc",
     "start": "node dist/refine_data.js"
   },
@@ -19,14 +21,15 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "openai": "^4.73.0",
+    "cli-progress": "^3.12.0",
     "dotenv": "^16.4.7",
-    "cli-progress": "^3.12.0"
+    "openai": "^4.73.0",
+    "p-limit": "^7.2.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
     "@types/cli-progress": "^3.11.6",
-    "typescript": "^5.7.2",
-    "tsx": "^4.19.2"
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }
