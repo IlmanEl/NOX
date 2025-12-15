@@ -6,44 +6,30 @@ import { readFileSync } from 'fs';
 config();
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('❌ Ошибка: SUPABASE_URL и SUPABASE_ANON_KEY должны быть установлены в .env');
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('❌ Ошибка: SUPABASE_URL и SUPABASE_SERVICE_ROLE_KEY должны быть установлены в .env');
   process.exit(1);
 }
 
-// Создаем клиент Supabase
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Создаем клиент Supabase с service_role ключом для полных прав
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
-interface Word {
-  id: string;
+interface DictionaryEntry {
   ce: string;
   ru: string;
-  class?: string | null;
-  part_of_speech?: string;
-}
-
-interface Verb {
-  id: string;
-  ce_infinitive: string;
-  ru_infinitive: string;
-  present_tense: string;
-}
-
-interface Phrase {
-  id: string;
-  ru: string;
-  ce: string;
+  type: 'word' | 'phrase';
   category: string;
+  class?: string | null;
 }
 
-interface MasterSeed {
-  version: string;
-  words: Word[];
-  verbs: Verb[];
-  phrases: Phrase[];
-}
+type MasterSeed = DictionaryEntry[];
 
 async function setupDatabase() {
   // Проверяем флаг --clean для полной очистки базы
@@ -116,51 +102,34 @@ CREATE INDEX idx_dictionary_ce ON dictionary(ce);
       readFileSync('./master_seed.json', 'utf-8')
     );
 
-    const dictionaryEntries: Array<{
-      ce: string;
-      ru: string;
-      type: 'word' | 'phrase';
-      category: string;
-      is_verified: boolean;
-    }> = [];
+    // Преобразуем данные для загрузки в БД
+    const allEntries = masterSeed.map(entry => ({
+      ce: entry.ce,
+      ru: entry.ru,
+      type: entry.type,
+      category: entry.category,
+      is_verified: true
+    }));
 
-    // Обрабатываем слова
-    for (const word of masterSeed.words) {
-      dictionaryEntries.push({
-        ce: word.ce,
-        ru: word.ru,
-        type: 'word',
-        category: word.part_of_speech || 'unknown',
-        is_verified: true
-      });
+    // Удаляем дубликаты (оставляем последнее вхождение для каждого уникального ce)
+    const uniqueMap = new Map<string, typeof allEntries[0]>();
+    allEntries.forEach(entry => {
+      uniqueMap.set(entry.ce, entry);
+    });
+    const dictionaryEntries = Array.from(uniqueMap.values());
+
+    const duplicatesRemoved = allEntries.length - dictionaryEntries.length;
+    if (duplicatesRemoved > 0) {
+      console.log(`⚠️  Удалено дубликатов: ${duplicatesRemoved} (оставлены последние версии)\n`);
     }
 
-    // Обрабатываем глаголы
-    for (const verb of masterSeed.verbs) {
-      dictionaryEntries.push({
-        ce: verb.ce_infinitive,
-        ru: verb.ru_infinitive,
-        type: 'word',
-        category: 'verb',
-        is_verified: true
-      });
-    }
-
-    // Обрабатываем фразы
-    for (const phrase of masterSeed.phrases) {
-      dictionaryEntries.push({
-        ce: phrase.ce,
-        ru: phrase.ru,
-        type: 'phrase',
-        category: phrase.category || 'general',
-        is_verified: true
-      });
-    }
+    // Подсчитываем статистику
+    const wordCount = dictionaryEntries.filter(e => e.type === 'word').length;
+    const phraseCount = dictionaryEntries.filter(e => e.type === 'phrase').length;
 
     console.log(`📊 Всего записей для обработки: ${dictionaryEntries.length}`);
-    console.log(`   - Слов: ${masterSeed.words.length}`);
-    console.log(`   - Глаголов: ${masterSeed.verbs.length}`);
-    console.log(`   - Фраз: ${masterSeed.phrases.length}\n`);
+    console.log(`   - Слов: ${wordCount}`);
+    console.log(`   - Фраз: ${phraseCount}\n`);
 
     // 4. Загружаем данные в базу (upsert по полю ce)
     console.log('⬆️  Синхронизация с Supabase (upsert)...');
@@ -183,37 +152,20 @@ CREATE INDEX idx_dictionary_ce ON dictionary(ce);
     console.log(`✅ Успешно синхронизировано ${dictionaryEntries.length} записей!\n`);
 
     // 5. Проверяем результат
-    const { count, error: countError } = await supabase
+    const { data: allRecords, error: countError } = await supabase
       .from('dictionary')
-      .select('*', { count: 'exact', head: true });
+      .select('type');
 
     if (countError) {
       console.error('⚠️  Не удалось получить количество записей:', countError);
     } else {
-      console.log(`📈 Всего записей в базе: ${count}`);
-    }
+      const wordCount = allRecords?.filter(r => r.type === 'word').length || 0;
+      const phraseCount = allRecords?.filter(r => r.type === 'phrase').length || 0;
+      const totalCount = allRecords?.length || 0;
 
-    // Показываем статистику по типам
-    const { data: stats } = await supabase
-      .from('dictionary')
-      .select('type')
-      .then(async (result) => {
-        if (result.data) {
-          const wordCount = result.data.filter(r => r.type === 'word').length;
-          const phraseCount = result.data.filter(r => r.type === 'phrase').length;
-          return {
-            data: {
-              words: wordCount,
-              phrases: phraseCount
-            }
-          };
-        }
-        return { data: null };
-      });
-
-    if (stats) {
-      console.log(`   - Слов и глаголов: ${stats.words}`);
-      console.log(`   - Фраз: ${stats.phrases}`);
+      console.log(`📈 Всего записей в базе: ${totalCount}`);
+      console.log(`   - Слов и глаголов: ${wordCount}`);
+      console.log(`   - Фраз: ${phraseCount}`);
     }
 
     console.log('\n🎉 База данных успешно настроена и заполнена!');
