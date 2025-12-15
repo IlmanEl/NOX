@@ -151,21 +151,27 @@ CREATE INDEX idx_dictionary_ce ON dictionary(ce);
 
     console.log(`✅ Успешно синхронизировано ${dictionaryEntries.length} записей!\n`);
 
-    // 5. Проверяем результат
-    const { data: allRecords, error: countError } = await supabase
+    // 5. Проверяем результат - используем count: 'exact' для правильного подсчета
+    const { count: dbTotalCount, error: totalError } = await supabase
       .from('dictionary')
-      .select('type');
+      .select('*', { count: 'exact', head: true });
 
-    if (countError) {
-      console.error('⚠️  Не удалось получить количество записей:', countError);
+    const { count: dbWordCount, error: wordError } = await supabase
+      .from('dictionary')
+      .select('*', { count: 'exact', head: true })
+      .eq('type', 'word');
+
+    const { count: dbPhraseCount, error: phraseError } = await supabase
+      .from('dictionary')
+      .select('*', { count: 'exact', head: true })
+      .eq('type', 'phrase');
+
+    if (totalError || wordError || phraseError) {
+      console.error('⚠️  Не удалось получить количество записей:', totalError || wordError || phraseError);
     } else {
-      const wordCount = allRecords?.filter(r => r.type === 'word').length || 0;
-      const phraseCount = allRecords?.filter(r => r.type === 'phrase').length || 0;
-      const totalCount = allRecords?.length || 0;
-
-      console.log(`📈 Всего записей в базе: ${totalCount}`);
-      console.log(`   - Слов и глаголов: ${wordCount}`);
-      console.log(`   - Фраз: ${phraseCount}`);
+      console.log(`📈 Всего записей в базе: ${dbTotalCount}`);
+      console.log(`   - Слов и глаголов: ${dbWordCount}`);
+      console.log(`   - Фраз: ${dbPhraseCount}`);
     }
 
     console.log('\n🎉 База данных успешно настроена и заполнена!');
