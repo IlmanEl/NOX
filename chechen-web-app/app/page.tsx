@@ -15,12 +15,12 @@ export default async function HomePage() {
     <div className="space-y-6">
       {/* Header */}
       <header className="space-y-2">
-        <p className="text-sm font-medium text-gray-500">Привет! 👋</p>
-        <h1 className="text-4xl font-black leading-tight text-gray-900">
-          Уроки
+        <p className="text-[15px] font-medium text-gray-500">Привет! 👋</p>
+        <h1 className="text-[42px] font-black leading-[1.1] tracking-tight text-gray-900">
+          Чеченский язык
         </h1>
-        <p className="text-sm text-gray-600">
-          Изучай чеченский язык шаг за шагом
+        <p className="text-sm font-medium text-gray-600">
+          Изучай язык шаг за шагом
         </p>
       </header>
 
