@@ -22,13 +22,11 @@ const navItems = [
     name: 'Словарь',
     href: '/dictionary',
     icon: BookMarked,
-    disabled: true, // Coming soon
   },
   {
     name: 'Профиль',
     href: '/profile',
     icon: User,
-    disabled: true, // Coming soon
   },
 ]
 
@@ -46,14 +44,8 @@ export function BottomNavigation() {
             return (
               <Link
                 key={item.href}
-                href={item.disabled ? '#' : item.href}
-                className={`relative flex flex-col items-center gap-1 rounded-xl px-6 py-2 transition-all ${
-                  item.disabled
-                    ? 'cursor-not-allowed opacity-40'
-                    : 'hover:scale-105 active:scale-95'
-                }`}
-                aria-disabled={item.disabled}
-                onClick={(e) => item.disabled && e.preventDefault()}
+                href={item.href}
+                className="relative flex flex-col items-center gap-1 rounded-xl px-6 py-2 transition-all hover:scale-105 active:scale-95"
               >
                 {/* Active indicator */}
                 {isActive && (
