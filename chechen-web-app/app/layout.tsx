@@ -1,11 +1,20 @@
 import type { Metadata, Viewport } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
+import { BottomNavigation } from '@/components/bottom-navigation'
+
+const inter = Inter({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 /**
  * Root Layout
  *
- * This layout wraps all pages in the application.
- * PWA-ready with proper viewport and metadata.
+ * Mobile-first layout with bottom navigation
+ * PWA-ready with proper viewport and metadata
  */
 
 export const metadata: Metadata = {
@@ -33,11 +42,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className="safe-top safe-bottom min-h-screen">
-        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {children}
-        </main>
+    <html lang="en" className="h-full">
+      <body className={`${inter.variable} safe-top safe-bottom flex min-h-full flex-col bg-gradient-to-b from-white to-gray-50 font-sans antialiased`}>
+        {/* Mobile Shell - max width like phone screen */}
+        <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col">
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto px-4 pb-24 pt-6">
+            {children}
+          </main>
+
+          {/* Bottom Navigation */}
+          <BottomNavigation />
+        </div>
       </body>
     </html>
   )

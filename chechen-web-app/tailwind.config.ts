@@ -9,6 +9,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Duolingo-inspired green palette
+        duo: {
+          50: '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#58cc02', // Main Duolingo green
+          600: '#49ab02',
+          700: '#3a8802',
+          800: '#2d6a01',
+          900: '#1f4d01',
+        },
+        // Keep primary for backwards compatibility
         primary: {
           50: '#f0f9ff',
           100: '#e0f2fe',
@@ -24,8 +38,17 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['var(--font-geist-sans)'],
-        mono: ['var(--font-geist-mono)'],
+        sans: ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      borderRadius: {
+        '4xl': '2rem',
+        '5xl': '2.5rem',
+      },
+      boxShadow: {
+        'card': '0 4px 24px rgba(0, 0, 0, 0.08)',
+        'card-hover': '0 8px 40px rgba(0, 0, 0, 0.12)',
+        'button': '0 6px 24px rgba(0, 0, 0, 0.15)',
       },
       // Mobile-first breakpoints
       screens: {
