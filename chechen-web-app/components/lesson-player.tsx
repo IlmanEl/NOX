@@ -31,9 +31,11 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
   const [correctAnswer, setCorrectAnswer] = useState<string>('')
   const [correctCount, setCorrectCount] = useState(0)
   const [showResults, setShowResults] = useState(false)
+  const [answeredCount, setAnsweredCount] = useState(0) // Track answered questions
 
   const currentExercise = exercises[currentIndex]
-  const progress = ((currentIndex + 1) / exercises.length) * 100
+  // Progress based on answered questions, not current question
+  const progress = (answeredCount / exercises.length) * 100
 
   // FIX: Use 'type' instead of 'exercise_type'
   const isTypingExercise = currentExercise.type === 'typing'
@@ -67,6 +69,9 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
         if (result.data.is_correct) {
           setCorrectCount((prev) => prev + 1)
         }
+
+        // Increment answered count immediately for progress bar
+        setAnsweredCount((prev) => prev + 1)
 
         // Auto-advance after delay
         setTimeout(() => {
@@ -158,6 +163,7 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
               onClick={() => {
                 setCurrentIndex(0)
                 setCorrectCount(0)
+                setAnsweredCount(0)
                 setShowResults(false)
                 setSelectedAnswer(null)
                 setTypedAnswer('')
@@ -270,13 +276,13 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
                       whileTap={answerState === 'idle' ? { scale: 0.99 } : {}}
                       onClick={() => handleAnswerSelect(option)}
                       disabled={answerState !== 'idle'}
-                      className={`answer-option relative w-full overflow-hidden rounded-2xl border-[3px] p-5 text-left text-base font-bold transition-all shadow-sm ${
+                      className={`answer-option relative w-full overflow-hidden rounded-2xl border-[3px] p-5 text-left text-base font-bold transition-all ${
                         shouldHighlightCorrect
-                          ? 'border-green-500 bg-green-100 text-green-900 shadow-green-200'
+                          ? 'border-green-500 bg-green-100 text-green-900 shadow-lg shadow-green-200'
                           : shouldHighlightIncorrect
-                            ? 'border-red-500 bg-red-100 text-red-900 shadow-red-200'
+                            ? 'border-red-500 bg-red-100 text-red-900 shadow-lg shadow-red-200'
                             : isSelected
-                              ? 'border-duo-500 bg-duo-100 text-duo-900 shadow-duo-200'
+                              ? 'border-duo-500 bg-duo-200 text-duo-900 shadow-xl shadow-duo-300 ring-2 ring-duo-300'
                               : 'border-gray-300 bg-white text-gray-900 hover:border-gray-400 hover:bg-gray-50 hover:shadow-md'
                       }`}
                     >

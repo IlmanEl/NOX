@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { BookOpen, Target } from 'lucide-react'
+import { BookOpen, Target, ArrowRight } from 'lucide-react'
 import type { PublicLesson } from '@/features/lessons/types/lesson.types'
+import { useMemo } from 'react'
 
 /**
  * Lesson Card Component
@@ -25,12 +26,22 @@ const backgroundImages = [
   '/Gemini_Generated_Image_sakktfsakktfsakk.png',
 ]
 
+// MVP: Generate deterministic random progress based on lesson ID
+// This function is pure and will always return the same value for the same ID
+const generateMVPProgress = (id: number) => {
+  const seed = id * 17 + 42 // Simple seed based on ID
+  const random = (seed % 100) // Deterministic "random" between 0-99
+  const progress = [0, 15, 30, 45, 60, 75, 85, 95, 100][random % 9]
+  return progress
+}
+
 export function LessonCard({ lesson, index }: LessonCardProps) {
   const backgroundImage = backgroundImages[index % backgroundImages.length]
 
-  // Calculate progress from lesson data
-  // If lesson has progress_percentage from server, use it; otherwise default to 0
-  const progress = (lesson as any).progress_percentage ?? 0
+  // Calculate progress - memoized to ensure consistency
+  const progress = useMemo(() => {
+    return (lesson as any).progress_percentage ?? generateMVPProgress(lesson.id)
+  }, [lesson.id])
 
   return (
     <motion.div
@@ -101,15 +112,13 @@ export function LessonCard({ lesson, index }: LessonCardProps) {
               </div>
             </div>
 
-            {/* Lesson Number Button - Bottom Right */}
+            {/* CTA Arrow Button - Bottom Right */}
             <motion.div
-              whileHover={{ scale: 1.1 }}
+              whileHover={{ scale: 1.1, x: 4 }}
               whileTap={{ scale: 0.95 }}
-              className="absolute bottom-3 right-3 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-white/97 shadow-button"
+              className="absolute bottom-3 right-3 flex h-[76px] w-[76px] items-center justify-center rounded-full bg-white/97 shadow-button backdrop-blur-sm"
             >
-              <span className="text-2xl font-bold text-gray-700">
-                #{lesson.lesson_number}
-              </span>
+              <ArrowRight size={36} strokeWidth={1} className="text-duo-500 -rotate-45" />
             </motion.div>
           </div>
         </div>
