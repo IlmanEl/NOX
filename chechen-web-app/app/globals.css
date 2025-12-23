@@ -30,6 +30,20 @@ a {
   min-width: 44px;
 }
 
+/* CRITICAL: Reset button styles to allow Tailwind classes to work */
+button {
+  background-color: transparent;
+  border: none;
+  opacity: 1;
+}
+
+/* Hide Next.js Dev Tools Indicator */
+#devtools-indicator,
+[data-nextjs-toast],
+[data-next-badge-root] {
+  display: none !important;
+}
+
 /* Safe area insets for mobile devices */
 .safe-top {
   padding-top: env(safe-area-inset-top);

@@ -6,13 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ArrowLeft, Check, X, Award } from 'lucide-react'
 import type { PublicLesson } from '@/features/lessons/types/dto'
 import type { PublicExercise } from '@/features/exercises/types/exercise.types'
+import { validateAnswer } from '@/app/lesson/[id]/actions/validate-answer'
 
 /**
  * Lesson Player Component
  *
- * Duolingo-style interactive game loop
- * Supports: multiple_choice and typing exercises
- * Features: Green "Check" button, smooth animations, proper feedback
+ * FIXED: Server-side validation, green button, proper type field
  */
 
 interface LessonPlayerProps {
@@ -20,7 +19,7 @@ interface LessonPlayerProps {
   exercises: PublicExercise[]
 }
 
-type AnswerState = 'idle' | 'correct' | 'incorrect'
+type AnswerState = 'idle' | 'checking' | 'correct' | 'incorrect'
 
 export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
   const router = useRouter()
@@ -29,12 +28,15 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [typedAnswer, setTypedAnswer] = useState('')
   const [answerState, setAnswerState] = useState<AnswerState>('idle')
+  const [correctAnswer, setCorrectAnswer] = useState<string>('')
   const [correctCount, setCorrectCount] = useState(0)
   const [showResults, setShowResults] = useState(false)
 
   const currentExercise = exercises[currentIndex]
   const progress = ((currentIndex + 1) / exercises.length) * 100
-  const isTypingExercise = currentExercise.exercise_type === 'typing'
+
+  // FIX: Use 'type' instead of 'exercise_type'
+  const isTypingExercise = currentExercise.type === 'typing'
   const currentAnswer = isTypingExercise ? typedAnswer.trim() : selectedAnswer
 
   // Auto-focus input for typing exercises
@@ -52,22 +54,32 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
   const handleSubmit = async () => {
     if (!currentAnswer || answerState !== 'idle') return
 
-    // TODO: Call API to validate answer on server
-    // For now, mock validation
-    const isCorrect = isTypingExercise
-      ? currentExercise.correct_answer?.toLowerCase() === typedAnswer.toLowerCase().trim()
-      : currentExercise.correct_answer === selectedAnswer
+    setAnswerState('checking')
 
-    setAnswerState(isCorrect ? 'correct' : 'incorrect')
+    try {
+      // FIX: Server-side validation
+      const result = await validateAnswer(currentExercise.id, currentAnswer)
 
-    if (isCorrect) {
-      setCorrectCount((prev) => prev + 1)
+      if (result.success && result.data) {
+        setCorrectAnswer(result.data.correct_answer)
+        setAnswerState(result.data.is_correct ? 'correct' : 'incorrect')
+
+        if (result.data.is_correct) {
+          setCorrectCount((prev) => prev + 1)
+        }
+
+        // Auto-advance after delay
+        setTimeout(() => {
+          handleNext()
+        }, 1500)
+      } else {
+        console.error('Validation failed:', result.error)
+        setAnswerState('idle')
+      }
+    } catch (error) {
+      console.error('Error validating answer:', error)
+      setAnswerState('idle')
     }
-
-    // Auto-advance after delay
-    setTimeout(() => {
-      handleNext()
-    }, 1500)
   }
 
   const handleNext = () => {
@@ -76,8 +88,8 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
       setSelectedAnswer(null)
       setTypedAnswer('')
       setAnswerState('idle')
+      setCorrectAnswer('')
     } else {
-      // TODO: Save progress to Supabase before showing results
       setShowResults(true)
     }
   }
@@ -125,7 +137,7 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
             <div className="mb-2 text-6xl font-black text-gray-900">
               {percentage}%
             </div>
-            <div className="text-sm font-bold text-gray-500 uppercase tracking-wide">
+            <div className="text-sm font-bold uppercase tracking-wide text-gray-500">
               Твой результат
             </div>
           </div>
@@ -150,6 +162,7 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
                 setSelectedAnswer(null)
                 setTypedAnswer('')
                 setAnswerState('idle')
+                setCorrectAnswer('')
               }}
               className="w-full rounded-2xl border-2 border-gray-200 bg-white py-4 text-base font-bold text-gray-700 hover:bg-gray-50"
             >
@@ -180,9 +193,9 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
       <div className="mb-6 h-4 w-full overflow-hidden rounded-full bg-gray-200">
         <motion.div
           className="h-full bg-duo-500"
-          initial={{ width: 0 }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.3 }}
+          style={{ width: `${progress}%` }}
+          initial={false}
+          transition={{ duration: 0.3, ease: "easeOut" }}
         />
       </div>
 
@@ -227,14 +240,14 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
                         : 'border-gray-200 bg-white text-gray-900 focus:border-duo-500'
                   }`}
                 />
-                {answerState === 'incorrect' && currentExercise.correct_answer && (
+                {answerState === 'incorrect' && correctAnswer && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="rounded-2xl border-2 border-green-500 bg-green-50 p-4"
                   >
                     <p className="text-sm font-semibold text-green-900">
-                      Правильный ответ: {currentExercise.correct_answer}
+                      Правильный ответ: {correctAnswer}
                     </p>
                   </motion.div>
                 )}
@@ -244,8 +257,8 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
               <div className="space-y-3">
                 {currentExercise.options?.map((option, idx) => {
                   const isSelected = selectedAnswer === option
-                  const isCorrectOption = option === currentExercise.correct_answer
-                  const showFeedback = answerState !== 'idle'
+                  const isCorrectOption = answerState !== 'idle' && option === correctAnswer
+                  const showFeedback = answerState !== 'idle' && answerState !== 'checking'
                   const shouldHighlightCorrect = showFeedback && isCorrectOption
                   const shouldHighlightIncorrect = showFeedback && isSelected && !isCorrectOption
 
@@ -291,20 +304,28 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
         </AnimatePresence>
       </div>
 
-      {/* Fixed Bottom: Check Button */}
-      <div className="sticky bottom-0 left-0 right-0 mt-6 bg-gradient-to-t from-gray-50 pt-4">
+      {/* FIX: BRIGHT GREEN CHECK BUTTON - ALWAYS VISIBLE */}
+      <div className="sticky bottom-0 left-0 right-0 mt-6 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-4 pb-2">
         <motion.button
           whileHover={{ scale: currentAnswer ? 1.02 : 1 }}
           whileTap={{ scale: currentAnswer ? 0.98 : 1 }}
           onClick={handleSubmit}
           disabled={!currentAnswer || answerState !== 'idle'}
-          className={`w-full rounded-2xl py-4 text-base font-bold uppercase tracking-wide text-white shadow-lg transition-all ${
+          className={`w-full rounded-2xl py-4 text-base font-bold uppercase tracking-wide shadow-lg transition-all ${
             currentAnswer && answerState === 'idle'
-              ? 'bg-duo-500 hover:bg-duo-600 hover:shadow-xl'
-              : 'cursor-not-allowed bg-gray-300 text-gray-500'
+              ? 'bg-duo-500 text-white hover:bg-duo-600 hover:shadow-xl'
+              : answerState === 'checking'
+                ? 'bg-duo-400 text-white cursor-wait'
+                : 'cursor-not-allowed bg-gray-200 text-gray-400'
           }`}
         >
-          {answerState === 'idle' ? 'Проверить' : answerState === 'correct' ? 'Правильно!' : 'Неправильно'}
+          {answerState === 'idle'
+            ? 'Проверить'
+            : answerState === 'checking'
+              ? 'Проверка...'
+              : answerState === 'correct'
+                ? 'Правильно!'
+                : 'Неправильно'}
         </motion.button>
       </div>
     </div>
