@@ -232,7 +232,7 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
                   onKeyPress={handleKeyPress}
                   disabled={answerState !== 'idle'}
                   placeholder="Введите ваш ответ..."
-                  className={`w-full rounded-2xl border-2 px-6 py-4 text-lg font-semibold transition-all focus:outline-none ${
+                  className={`typing-input w-full rounded-2xl border-2 px-6 py-4 text-lg font-semibold transition-all focus:outline-none ${
                     answerState === 'correct'
                       ? 'border-green-500 bg-green-50 text-green-900'
                       : answerState === 'incorrect'
@@ -269,7 +269,7 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
                       whileTap={answerState === 'idle' ? { scale: 0.99 } : {}}
                       onClick={() => handleAnswerSelect(option)}
                       disabled={answerState !== 'idle'}
-                      className={`relative w-full overflow-hidden rounded-2xl border-2 p-5 text-left text-base font-bold transition-all ${
+                      className={`answer-option relative w-full overflow-hidden rounded-2xl border-2 p-5 text-left text-base font-bold transition-all ${
                         shouldHighlightCorrect
                           ? 'border-green-500 bg-green-50 text-green-900'
                           : shouldHighlightIncorrect
@@ -304,20 +304,33 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
         </AnimatePresence>
       </div>
 
-      {/* FIX: BRIGHT GREEN CHECK BUTTON - ALWAYS VISIBLE */}
+      {/* CHECK BUTTON - ALWAYS VISIBLE WITH DISTINCT STYLING */}
       <div className="sticky bottom-0 left-0 right-0 mt-6 bg-gradient-to-t from-gray-50 via-gray-50 to-transparent pt-4 pb-2">
         <motion.button
           whileHover={{ scale: currentAnswer ? 1.02 : 1 }}
           whileTap={{ scale: currentAnswer ? 0.98 : 1 }}
           onClick={handleSubmit}
           disabled={!currentAnswer || answerState !== 'idle'}
-          className={`w-full rounded-2xl py-4 text-base font-bold uppercase tracking-wide shadow-lg transition-all ${
+          className={`submit-button w-full rounded-2xl py-4 text-base font-bold uppercase tracking-wide shadow-lg transition-all ${
             currentAnswer && answerState === 'idle'
-              ? 'bg-duo-500 text-white hover:bg-duo-600 hover:shadow-xl'
+              ? 'bg-duo-500 text-white hover:bg-duo-600 hover:shadow-xl active:bg-duo-700'
               : answerState === 'checking'
                 ? 'bg-duo-400 text-white cursor-wait'
-                : 'cursor-not-allowed bg-gray-200 text-gray-400'
+                : 'cursor-not-allowed bg-gray-200 text-gray-400 shadow-none'
           }`}
+          style={{
+            // Enforce styles to prevent conflicts
+            ...(currentAnswer && answerState === 'idle' ? {
+              backgroundColor: '#58cc02',
+              color: '#ffffff',
+            } : answerState === 'checking' ? {
+              backgroundColor: '#4ade80',
+              color: '#ffffff',
+            } : {
+              backgroundColor: '#e5e7eb',
+              color: '#9ca3af',
+            })
+          }}
         >
           {answerState === 'idle'
             ? 'Проверить'
