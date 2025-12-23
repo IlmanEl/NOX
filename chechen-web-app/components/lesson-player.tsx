@@ -190,12 +190,13 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
       </div>
 
       {/* Progress Bar */}
-      <div className="mb-6 h-4 w-full overflow-hidden rounded-full bg-gray-200">
+      <div className="mb-6 h-5 w-full overflow-hidden rounded-full bg-gray-200 shadow-inner">
         <motion.div
-          className="h-full bg-duo-500"
+          className="h-full rounded-full bg-gradient-to-r from-duo-500 to-duo-600 shadow-md"
           style={{ width: `${progress}%` }}
           initial={false}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
         />
       </div>
 
@@ -254,7 +255,7 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
               </div>
             ) : (
               /* Multiple Choice */
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {currentExercise.options?.map((option, idx) => {
                   const isSelected = selectedAnswer === option
                   const isCorrectOption = answerState !== 'idle' && option === correctAnswer
@@ -265,18 +266,18 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
                   return (
                     <motion.button
                       key={idx}
-                      whileHover={answerState === 'idle' ? { scale: 1.01 } : {}}
+                      whileHover={answerState === 'idle' ? { scale: 1.01, y: -2 } : {}}
                       whileTap={answerState === 'idle' ? { scale: 0.99 } : {}}
                       onClick={() => handleAnswerSelect(option)}
                       disabled={answerState !== 'idle'}
-                      className={`answer-option relative w-full overflow-hidden rounded-2xl border-2 p-5 text-left text-base font-bold transition-all ${
+                      className={`answer-option relative w-full overflow-hidden rounded-2xl border-[3px] p-5 text-left text-base font-bold transition-all shadow-sm ${
                         shouldHighlightCorrect
-                          ? 'border-green-500 bg-green-50 text-green-900'
+                          ? 'border-green-500 bg-green-100 text-green-900 shadow-green-200'
                           : shouldHighlightIncorrect
-                            ? 'border-red-500 bg-red-50 text-red-900'
+                            ? 'border-red-500 bg-red-100 text-red-900 shadow-red-200'
                             : isSelected
-                              ? 'border-duo-500 bg-duo-50 text-duo-900'
-                              : 'border-gray-200 bg-white text-gray-900 hover:border-gray-300'
+                              ? 'border-duo-500 bg-duo-100 text-duo-900 shadow-duo-200'
+                              : 'border-gray-300 bg-white text-gray-900 hover:border-gray-400 hover:bg-gray-50 hover:shadow-md'
                       }`}
                     >
                       {/* Feedback Icon */}
@@ -287,9 +288,13 @@ export function LessonPlayer({ lesson, exercises }: LessonPlayerProps) {
                           className="absolute right-5 top-1/2 -translate-y-1/2"
                         >
                           {shouldHighlightCorrect ? (
-                            <Check size={26} className="text-green-600" strokeWidth={3} />
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500">
+                              <Check size={20} className="text-white" strokeWidth={3} />
+                            </div>
                           ) : shouldHighlightIncorrect ? (
-                            <X size={26} className="text-red-600" strokeWidth={3} />
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500">
+                              <X size={20} className="text-white" strokeWidth={3} />
+                            </div>
                           ) : null}
                         </motion.div>
                       )}

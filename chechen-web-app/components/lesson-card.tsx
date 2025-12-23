@@ -27,7 +27,10 @@ const backgroundImages = [
 
 export function LessonCard({ lesson, index }: LessonCardProps) {
   const backgroundImage = backgroundImages[index % backgroundImages.length]
-  const progress = 0 // TODO: Get from user_progress table
+
+  // Calculate progress from lesson data
+  // If lesson has progress_percentage from server, use it; otherwise default to 0
+  const progress = (lesson as any).progress_percentage ?? 0
 
   return (
     <motion.div
