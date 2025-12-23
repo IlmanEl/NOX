@@ -42,10 +42,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="h-full">
-      <body className={`${inter.variable} safe-top safe-bottom flex min-h-full flex-col bg-gradient-to-b from-white to-gray-50 font-sans antialiased`}>
+    <html lang="en" className="h-full" suppressHydrationWarning>
+      <body
+        className={`${inter.variable} safe-top safe-bottom flex min-h-full flex-col font-sans antialiased`}
+        suppressHydrationWarning
+      >
         {/* Mobile Shell - max width like phone screen */}
-        <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col">
+        <div className="relative mx-auto flex w-full max-w-md flex-1 flex-col bg-gradient-to-b from-white to-gray-50">
           {/* Main Content */}
           <main className="flex-1 overflow-y-auto px-4 pb-24 pt-6">
             {children}

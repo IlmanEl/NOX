@@ -13,11 +13,8 @@ const nextConfig = {
   // PWA optimization
   poweredByHeader: false,
   compress: true,
-  // Disable dev indicators (removes the N button)
-  devIndicators: {
-    appIsrIndicator: false,
-    buildActivity: false,
-  },
+  // Disable dev indicators completely
+  devIndicators: false,
 }
 
 export default nextConfig
