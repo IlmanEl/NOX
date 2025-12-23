@@ -37,6 +37,42 @@ button {
   opacity: 1;
 }
 
+/* Lesson Player - Distinct styles for answer options vs submit button */
+.answer-option {
+  /* Answer options have border and background */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.submit-button {
+  /* Submit button always has solid background and white text when active */
+  display: block;
+  text-align: center;
+  font-weight: 700;
+}
+
+.submit-button:not(:disabled):not([aria-disabled="true"]) {
+  /* Ensure active submit button is always visible */
+  background-color: #58cc02 !important;
+  color: #ffffff !important;
+}
+
+.submit-button:disabled,
+.submit-button[aria-disabled="true"] {
+  /* Disabled state */
+  background-color: #e5e7eb !important;
+  color: #9ca3af !important;
+  cursor: not-allowed;
+}
+
+.typing-input {
+  /* Typing input has its own distinct styles */
+  display: block;
+  width: 100%;
+}
+
 /* Hide Next.js Dev Tools Indicator */
 #devtools-indicator,
 [data-nextjs-toast],
